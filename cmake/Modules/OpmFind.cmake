@@ -51,6 +51,14 @@ foreach (name IN LISTS _opm_proj_vars)
   endif (NOT DEFINED ${CMAKE_PROJECT_NAME}_${name})
 endforeach (name)
 
+# these dependencies must always be handled by the find module
+set (_opm_proj_exemptions
+  dune-common
+  dune-istl
+  dune-grid
+  dune-geometry
+  )
+
 # insert this boilerplate whenever we are going to find a new package
 macro (find_and_append_package_to prefix name)
   # if we have specified a directory, don't revert to searching the
@@ -71,6 +79,16 @@ macro (find_and_append_package_to prefix name)
 	  set (${name}_DIR "${${NAME}_ROOT}")
 	endif (EXISTS ${${NAME}_ROOT}/${name}-config.cmake OR EXISTS ${${NAME}_ROOT}/${name}Config.cmake)
   endif (NOT DEFINED ${name}_DIR AND (DEFINED ${name}_ROOT OR DEFINED ${NAME}_ROOT))
+
+  # these libraries need special handling which is not provided in
+  # the -config.cmake file, but which must be provided by this project,
+  # something which is done in our find module
+  list (FIND _opm_proj_exemptions "${name}" _${name}_exempted)
+  if ((NOT (_${name}_exempted EQUAL -1)) AND (DEFINED ${name}_DIR))
+	set (${name}_ROOT "${${name}_DIR}")
+	unset (${name}_DIR)
+  endif ((NOT (_${name}_exempted EQUAL -1)) AND (DEFINED ${name}_DIR))
+
   # using config mode is better than using module (aka. find) mode
   # because then the package has already done all its probes and
   # stored them in the config file for us
